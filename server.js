@@ -3,8 +3,8 @@ const express = require("express");
 const admin = require("firebase-admin");
 const twilio = require("twilio");
 
-const accountSid = "ACdb0950b08bdbbdaf91c71c1d67587cba"; // Twilio Account SID from environment
-const authToken = "845c9f5a2e9cfe5f1b8c81f49a832ef7"; // Twilio Auth Token from environment
+const accountSid = TWILIO_ACCOUNT_SID; // Twilio Account SID from environment
+const authToken = TWILIO_AUTH_TOKEN; // Twilio Auth Token from environment
 console.log(accountSid, authToken);
 // const client = new twilio(accountSid, authToken);
 const cors = require("cors");
