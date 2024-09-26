@@ -1,15 +1,11 @@
 // Backend: Node.js + Express
 const express = require("express");
 const admin = require("firebase-admin");
-const twilio = require("twilio");
-
-// const accountSid = TWILIO_ACCOUNT_SID; // Twilio Account SID from environment
-// const authToken = TWILIO_AUTH_TOKEN; // Twilio Auth Token from environment
-console.log(accountSid, authToken);
-// const client = new twilio(accountSid, authToken);
 const cors = require("cors");
-
-const client = require("twilio")(accountSid, authToken);
+const nodemailer = require("nodemailer");
+const randomToken = require("random-token").create(
+  "abcdefghijklmnopqrstuvwxzyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+);
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -22,78 +18,74 @@ admin.initializeApp({
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 });
 const db = admin.firestore();
+// Helper function to generate a 6-digit OTP
+const generateNumericOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000);
+};
 
 const app = express();
 app.use(express.json()); // To parse JSON requests
 app.use(cors());
 
-// Route: Send OTP
-app.post("/api/send-otp", async (req, res) => {
-  const phoneNumber = req.body.phoneNumber;
-  console.log(phoneNumber);
-  const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+let tempOtpStore = {}; // Temporary store to hold OTPs, you can use a DB instead
 
-  try {
-    client.verify.v2
-      .services("VA469a1564f9d0fb38209d4f56f0a45e62")
-      .verifications.create({ to: phoneNumber, channel: "sms" })
-      .then((verification) => console.log(verification.sid));
-    // const message = await client.messages.create({
-    //   body: `Your OTP is ${otp}`,
-    //   from: "+94705841668", // Twilio Phone Number (replace with your Twilio number)
-    //   to: phoneNumber,
-    // });
+// Configure your email service
+const transporter = nodemailer.createTransport({
+  service: "gmail", // Use your email provider
+  auth: {
+    user: "didusri2001@gmail.com",
+    pass: "quta paab lncc xluw", // Your email password (you may need to enable 'less secure apps' in your Gmail settings)
+  },
+});
+// Route to send OTP to email
+app.post("/api/send-email-otp", (req, res) => {
+  const { email } = req.body;
 
-    // Save OTP to Firestore
-    const otpRef = db.collection("otps").doc(phoneNumber);
-    await otpRef.set({
-      otp,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  const otp = generateNumericOtp();
 
-    res.status(200).send({ success: true, message: "OTP sent successfully!" });
-  } catch (err) {
-    console.error("Error sending OTP:", err);
-    res.status(500).send({ success: false, message: "Failed to send OTP" });
-  }
+  // Store the OTP for verification later (e.g., store it in your database)
+  tempOtpStore[email] = otp;
+
+  // Send the OTP to the user's email
+  const mailOptions = {
+    from: "didusri2001@gmail.com", // Sender address
+    to: email, // Recipient's email address
+    subject: "Your OTP Code",
+    text: `Your OTP code is: ${otp}`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error("Error sending email:", error);
+      return res
+        .status(500)
+        .send({ success: false, message: "Failed to send OTP email" });
+    }
+    console.log("Email sent:", info.response);
+    res.status(200).send({ success: true, message: "OTP sent to email" });
+  });
 });
 
-// Route: Verify OTP
-app.post("/api/verify-otp", async (req, res) => {
-  const { phoneNumber, enteredOtp } = req.body;
+// Route to verify OTP
+app.post("/api/verify-email-otp", (req, res) => {
+  const { email, enteredOtp } = req.body;
 
-  try {
-    // Retrieve OTP from Firestore
-    const otpRef = db.collection("otps").doc(phoneNumber);
-    const otpDoc = await otpRef.get();
+  // Check if the entered OTP matches the one we sent
+  if (tempOtpStore[email] === enteredOtp) {
+    // OTP matched, proceed with sign-up or other actions
+    // Remove OTP after successful verification
+    delete tempOtpStore[email];
 
-    if (!otpDoc.exists) {
-      return res
-        .status(400)
-        .send({ success: false, message: "OTP not found!" });
-    }
-
-    const { otp } = otpDoc.data();
-
-    // Compare OTP
-    if (otp !== enteredOtp) {
-      return res.status(400).send({ success: false, message: "Invalid OTP!" });
-    }
-
-    // OTP matched, create Firebase Auth user (optional)
-    const user = await admin.auth().createUser({
-      phoneNumber: phoneNumber,
-    });
-
-    res.status(200).send({ success: true, user });
-  } catch (err) {
-    console.error("Error verifying OTP:", err);
-    res.status(500).send({ success: false, message: "Failed to verify OTP" });
+    res
+      .status(200)
+      .send({ success: true, message: "Email OTP verified successfully!" });
+  } else {
+    res.status(400).send({ success: false, message: "Invalid OTP" });
   }
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
