@@ -1,12 +1,7 @@
-// Backend: Node.js + Express
 const express = require("express");
 const admin = require("firebase-admin");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
-const randomToken = require("random-token").create(
-  "abcdefghijklmnopqrstuvwxzyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-);
-
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(require("./serviceAccountKey.json")),
@@ -24,17 +19,17 @@ const generateNumericOtp = () => {
 };
 
 const app = express();
-app.use(express.json()); // To parse JSON requests
+app.use(express.json());
 app.use(cors());
 
-let tempOtpStore = {}; // Temporary store to hold OTPs, you can use a DB instead
+let tempOtpStore = {};
 
 // Configure your email service
 const transporter = nodemailer.createTransport({
   service: "gmail", // Use your email provider
   auth: {
     user: "didusri2001@gmail.com",
-    pass: "quta paab lncc xluw", // Your email password (you may need to enable 'less secure apps' in your Gmail settings)
+    pass: "quta paab lncc xluw",
   },
 });
 // Route to send OTP to email
@@ -42,14 +37,14 @@ app.post("/api/send-email-otp", (req, res) => {
   const { email } = req.body;
 
   const otp = generateNumericOtp();
+  console.log("Generated OTP:", otp);
 
-  // Store the OTP for verification later (e.g., store it in your database)
   tempOtpStore[email] = otp;
 
   // Send the OTP to the user's email
   const mailOptions = {
-    from: "didusri2001@gmail.com", // Sender address
-    to: email, // Recipient's email address
+    from: "didusri2001@gmail.com",
+    to: email,
     subject: "Your OTP Code",
     text: `Your OTP code is: ${otp}`,
   };
@@ -69,11 +64,11 @@ app.post("/api/send-email-otp", (req, res) => {
 // Route to verify OTP
 app.post("/api/verify-email-otp", (req, res) => {
   const { email, enteredOtp } = req.body;
+  console.log("Entered OTP:", enteredOtp);
+  console.log("Temp store:", tempOtpStore);
+  console.log("Temp store email:", tempOtpStore[email]);
 
-  // Check if the entered OTP matches the one we sent
-  if (tempOtpStore[email] === enteredOtp) {
-    // OTP matched, proceed with sign-up or other actions
-    // Remove OTP after successful verification
+  if (tempOtpStore[email] && tempOtpStore[email].toString() === enteredOtp) {
     delete tempOtpStore[email];
 
     res
