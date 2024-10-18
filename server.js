@@ -81,6 +81,8 @@ app.post("/api/verify-email-otp", (req, res) => {
 // Route to update password
 app.post("/api/update-password", async (req, res) => {
   const { email, newPassword } = req.body;
+  console.log("Email:", email);
+  console.log("New Password", newPassword);
 
   try {
     // Fetch the user by email from Firebase
@@ -96,12 +98,10 @@ app.post("/api/update-password", async (req, res) => {
       .send({ success: true, message: "Password updated successfully!" });
   } catch (error) {
     console.error("Error updating password:", error);
-    res
-      .status(500)
-      .send({
-        success: false,
-        message: "Failed to update password. Try again.",
-      });
+    res.status(500).send({
+      success: false,
+      message: "Failed to update password. Try again.",
+    });
   }
 });
 
