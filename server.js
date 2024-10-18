@@ -78,6 +78,32 @@ app.post("/api/verify-email-otp", (req, res) => {
     res.status(400).send({ success: false, message: "Invalid OTP" });
   }
 });
+// Route to update password
+app.post("/api/update-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    // Fetch the user by email from Firebase
+    const user = await admin.auth().getUserByEmail(email);
+
+    // Update the user's password
+    await admin.auth().updateUser(user.uid, {
+      password: newPassword,
+    });
+
+    res
+      .status(200)
+      .send({ success: true, message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res
+      .status(500)
+      .send({
+        success: false,
+        message: "Failed to update password. Try again.",
+      });
+  }
+});
 
 // Start the server
 const PORT = process.env.PORT || 3001;
