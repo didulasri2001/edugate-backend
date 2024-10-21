@@ -2,6 +2,7 @@ const express = require("express");
 const admin = require("firebase-admin");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+app.use(express.json());
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(require("./serviceAccountKey.json")),
@@ -78,30 +79,30 @@ app.post("/api/verify-email-otp", (req, res) => {
     res.status(400).send({ success: false, message: "Invalid OTP" });
   }
 });
-// Route to update password
-app.post("/api/update-password", async (req, res) => {
+app.put("/api/updatePassword", (req, res) => {
   const { email, newPassword } = req.body;
   console.log("Email:", email);
-  console.log("New Password", newPassword);
 
   try {
-    // Fetch the user by email from Firebase
-    const user = await admin.auth().getUserByEmail(email);
+    // Fetch the user by email (Authentication)
+    const user = admin.auth().getUserByEmail(email);
 
-    // Update the user's password
-    await admin.auth().updateUser(user.uid, {
-      password: newPassword,
+    // Update the user's password (Authentication)
+    admin.auth().updateUser(user.uid, { password: newPassword });
+
+    // Optionally update some user information in Firestore
+    const userRef = db.collection("students").doc(user.uid);
+    userRef.update({
+      passwordUpdatedAt: new Date(),
     });
 
     res
       .status(200)
       .send({ success: true, message: "Password updated successfully!" });
   } catch (error) {
-    console.error("Error updating password:", error);
-    res.status(500).send({
-      success: false,
-      message: "Failed to update password. Try again.",
-    });
+    res
+      .status(500)
+      .send({ success: false, message: "Failed to update password" });
   }
 });
 
