@@ -10,7 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "firebase-admin": "^12.5.0",
+    "messagebird": "^4.0.1",
+    "nodemailer": "^6.9.15",
+    "random-token": "^0.0.8",
+    "twilio": "^5.3.1"
   }
 }
